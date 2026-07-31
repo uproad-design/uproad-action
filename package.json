@@ -1,0 +1,14 @@
+{
+  "name": "uproad-action",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Action that uploads HTML prototypes to Uproad and comments the share link on the pull request.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "uproad": "^1"
+  },
+  "license": "MIT"
+}

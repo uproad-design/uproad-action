@@ -1,0 +1,54 @@
+name: 'Uproad Push'
+description: 'Upload HTML prototypes to Uproad and comment the share link on the pull request'
+branding:
+  icon: 'upload-cloud'
+  color: 'green'
+
+inputs:
+  files:
+    description: 'Glob of HTML files to upload (e.g. dist/**/*.html or dist/index.html)'
+    required: true
+  token:
+    description: 'Uproad API token (create one in Uproad under Members -> API Tokens). Store as a repo secret.'
+    required: true
+  api:
+    description: 'Uproad app URL'
+    required: false
+    default: 'https://uproad.design'
+  project:
+    description: >-
+      Project to create new designs in (name or id). Must already exist in the workspace — projects
+      are never created implicitly. Ignored for designs that already exist. Defaults to the workspace
+      default project.
+    required: false
+    default: ''
+  docs:
+    description: >-
+      Glob of documents (.md/.html/.txt/.json/.yaml) to attach to every design pushed in this run,
+      e.g. docs/**/*.md. Paths are stored relative to the repository root and overwrite on each push.
+    required: false
+    default: ''
+  docs-sync:
+    description: >-
+      Also delete attached documents that are not in the docs glob, so a file removed from the repo
+      disappears from Uproad too. Off by default: a wrong glob would otherwise wipe every document.
+    required: false
+    default: 'false'
+  comment:
+    description: 'Post/update a sticky comment on the pull request with the share link(s)'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used to post the PR comment. Defaults to the workflow-provided GITHUB_TOKEN.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  urls:
+    description: 'Newline-separated share URLs for the uploaded designs'
+  results:
+    description: 'Raw JSON array of push results: {file, designId, versionNo, url} or {file, error}'
+
+runs:
+  using: 'node20'
+  main: 'index.js'

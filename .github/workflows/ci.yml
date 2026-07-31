@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 公開済みの uproad CLI を devDependency として入れる。テストはこれを UPROAD_CLI 経由で叩くので、
+      # 偽物ではなく本番と同じCLIに対して回る（本番はこれを npx で取ってくる）。
+      - name: Install
+        run: npm install
+
+      - name: Test
+        run: npm test
