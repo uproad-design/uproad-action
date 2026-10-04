@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm run build   # produces dist/index.html, or whatever your build does
-      - uses: naruto1031/uproad-action@main
+      - uses: uproad-design/uproad-action@main
         with:
           files: dist/index.html
           token: ${{ secrets.UPROAD_TOKEN }}
@@ -43,7 +43,7 @@ Every push updates the *same* design (keyed by file path by default) instead of 
 `docs` attaches specs alongside the prototype, so a reviewer or an agent can open the preview and the API design it is meant to satisfy from the same place:
 
 ```yaml
-      - uses: naruto1031/uproad-action@main
+      - uses: uproad-design/uproad-action@main
         with:
           files: dist/**/*.html
           docs: docs/**/*.md
