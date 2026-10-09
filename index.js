@@ -12,9 +12,20 @@ const STICKY_COMMENT_MARKER = '<!-- uproad-action-comment -->'
 // そのためCLIの `import { glob } from 'glob'` が ERR_MODULE_NOT_FOUND で必ず落ちていた
 // （CIはAction実行前に cli の依存を入れていたので、この経路だけテストで素通りしていた）。
 //
-// バージョンはメジャーで固定する: パッチ・マイナーの修正はActionを再リリースせずに届き、
-// 破壊的変更からは守られる。
-const CLI_SPEC = 'uproad@^1'
+// バージョンは完全に固定する。範囲指定（^1）だと、npm の公開アカウントが乗っ取られたときや
+// 依存に悪意のある版が混ざったときに、利用者全員のCIが次の実行でそれを取りに行き、
+// Uproad のトークンとジョブの GITHUB_TOKEN を渡してしまう。CLI を上げるときはここを書き換えてリリースする。
+export const CLI_SPEC = 'uproad@1.1.0'
+
+// CLI に渡す環境変数。トークンはコマンドライン引数ではなく UPROAD_TOKEN で渡す
+// （引数は ps や execFile のエラーメッセージに出る）。Action の入力（INPUT_*。GitHub トークンも含む）は
+// CLI に要らないので渡さない。
+export function cliEnv(token, base = process.env) {
+  const env = {}
+  for (const [k, v] of Object.entries(base)) if (!k.startsWith('INPUT_')) env[k] = v
+  env.UPROAD_TOKEN = token
+  return env
+}
 
 // UPROAD_CLI にローカルのエントリポイントを渡すと、npxではなくそれを直接実行する。
 // テストと、このリポジトリで未公開の変更を試すための逃げ道。
@@ -47,11 +58,11 @@ function setOutput(name, value) {
 // 「同一プロセス内のモックHTTPサーバーに子プロセスから接続する」構成だと自分自身を詰まらせて
 // デッドロックする（親が同期待ちの間、モックサーバー側のイベントループも進めない）。
 export async function runUproadPush({ files, token, api, project }) {
-  const args = ['push', files, '--token', token, '--api', api, '--json']
+  const args = ['push', files, '--api', api, '--json']
   if (project) args.push('--project', project)
   const { file, args: argv } = cliCommand(args)
   try {
-    const { stdout } = await execFileAsync(file, argv, { maxBuffer: 20 * 1024 * 1024 })
+    const { stdout } = await execFileAsync(file, argv, { maxBuffer: 20 * 1024 * 1024, env: cliEnv(token) })
     return stdout
   } catch (err) {
     // 一部ファイルの失敗でuproad pushは非0終了するが、成功分含むJSONはstdoutに出ている
@@ -64,11 +75,11 @@ export async function runUproadPush({ files, token, api, project }) {
 // 「どのデザインに付けるか」を指定させないのは、Actionの単位が「このコミットのデプロイ」であり、
 // docs/ もそのコミットの成果物だから。3つHTMLを上げたなら3つとも同じ仕様書を指しているのが自然。
 export async function runUproadPushDocs({ docs, designId, token, api, sync }) {
-  const args = ['push-docs', docs, '--design', designId, '--token', token, '--api', api, '--json']
+  const args = ['push-docs', docs, '--design', designId, '--api', api, '--json']
   if (sync) args.push('--sync')
   const { file, args: argv } = cliCommand(args)
   try {
-    const { stdout } = await execFileAsync(file, argv, { maxBuffer: 20 * 1024 * 1024 })
+    const { stdout } = await execFileAsync(file, argv, { maxBuffer: 20 * 1024 * 1024, env: cliEnv(token) })
     return stdout
   } catch (err) {
     if (typeof err.stdout === 'string' && err.stdout.trim()) return err.stdout
