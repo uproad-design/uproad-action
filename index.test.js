@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { getInput, parseResults, renderCommentBody, runUproadPush, commentOnPullRequest, main, cliCommand } from './index.js'
+import { getInput, parseResults, renderCommentBody, runUproadPush, commentOnPullRequest, main, cliCommand, cliEnv, CLI_SPEC } from './index.js'
 
-// 本番は `npx --yes uproad@^1` を叩く（下のテストで確認する）。テストのたびにnpxがレジストリを
+// 本番は `npx --yes uproad@<固定の版>` を叩く（下のテストで確認する）。テストのたびにnpxがレジストリを
 // 引きに行くのを避けたいので、devDependencyとして入れた同じパッケージを UPROAD_CLI で直接指す。
 // 偽物ではなく公開済みの本物のCLIに対して回るので、結合の検証としては同じ意味を持つ。
 const LOCAL_CLI = path.join(path.dirname(fileURLToPath(import.meta.url)), 'node_modules', 'uproad', 'bin', 'uproad.js')
@@ -21,10 +21,24 @@ test('by default the action runs the published CLI through npx, not a sibling di
     // リポジトリ相対のパスを踏むと、`uses:` 経由のチェックアウトには cli/node_modules が無いため
     // CLIの glob 解決に失敗する。npx なら依存ごと解決される。
     assert.equal(file, 'npx')
-    assert.deepEqual(args, ['--yes', 'uproad@^1', 'push', 'a.html'])
+    assert.deepEqual(args, ['--yes', 'uproad@1.1.0', 'push', 'a.html'])
   } finally {
     process.env.UPROAD_CLI = saved
   }
+})
+
+test('the CLI version is pinned exactly, not a range', () => {
+  // ^ や ~ を付けると、乗っ取られた公開版を利用者全員のCIが次の実行で取りに行く
+  assert.match(CLI_SPEC, /^uproad@\d+\.\d+\.\d+$/)
+})
+
+test('the token reaches the CLI as UPROAD_TOKEN, and the action inputs (incl. github-token) do not', () => {
+  const env = cliEnv('up_secret', { PATH: '/bin', INPUT_TOKEN: 'up_secret', 'INPUT_GITHUB-TOKEN': 'ghp_x', GITHUB_OUTPUT: '/tmp/o' })
+  assert.equal(env.UPROAD_TOKEN, 'up_secret')
+  assert.equal(env.PATH, '/bin')
+  assert.equal(env.GITHUB_OUTPUT, '/tmp/o')
+  assert.equal(env.INPUT_TOKEN, undefined)
+  assert.equal(env['INPUT_GITHUB-TOKEN'], undefined)
 })
 
 test('getInput reads INPUT_<NAME> env vars, preserving hyphens, and falls back', () => {

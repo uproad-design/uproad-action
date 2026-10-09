@@ -24,6 +24,10 @@ jobs:
 
 Create `UPROAD_TOKEN` as a repository secret from your Uproad workspace under **Members → API Tokens**.
 
+`@main` follows the latest commit of this action. Your Uproad token passes through it, so for anything beyond a trial, pin `uses:` to a full commit SHA (for example `uproad-design/uproad-action@<40-character SHA>`) and bump it deliberately.
+
+Don't run this action on `pull_request_target` with a checkout of the PR's code: the files it uploads would then come from an untrusted fork while the job holds your secrets.
+
 Every push updates the *same* design (keyed by file path by default) instead of creating a new one each time, so the link in the PR comment never changes — reviewers can just keep the tab open across pushes.
 
 ## Inputs
@@ -62,7 +66,7 @@ Paths are stored relative to the repository root, and pushing the same path over
 
 ## How it works
 
-This action has no npm dependencies of its own. It runs the published [`uproad`](https://www.npmjs.com/package/uproad) CLI through `npx --yes uproad@^1`, and posts the PR comment with a plain `fetch` call to the GitHub REST API. On repeat pushes to the same PR, it edits its own previous comment instead of piling up new ones.
+This action has no npm dependencies of its own. It runs the published [`uproad`](https://www.npmjs.com/package/uproad) CLI through `npx --yes uproad@1.1.0` (an exact version, so a compromised npm release can't reach your CI on its next run). Your Uproad token is passed to the CLI as an environment variable, never on the command line, and the CLI doesn't receive the action's other inputs such as `github-token`, and posts the PR comment with a plain `fetch` call to the GitHub REST API. On repeat pushes to the same PR, it edits its own previous comment instead of piling up new ones.
 
 Pinning the CLI to a major range means bug fixes reach you without a new action release, while a breaking CLI change cannot.
 
